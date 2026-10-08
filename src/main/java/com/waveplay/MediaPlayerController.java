@@ -196,7 +196,7 @@ public class MediaPlayerController {
         }
     }
 
-    // --- Getters for UI Binding ---
+    // Getters for UI Bindin
 
     public MediaView getMediaView() { 
         return mediaView; 

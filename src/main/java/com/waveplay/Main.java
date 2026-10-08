@@ -7,6 +7,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.io.File;
@@ -69,7 +73,7 @@ public class Main extends Application {
         
         // Using anonymous inner classes for quick styling, keeps code concise
         header.getChildren().addAll(
-            new Label("🎵 WAVEPLAY") {{ getStyleClass().add("brand-title"); }},
+            new Label("WAVEPLAY") {{ getStyleClass().add("brand-title"); }},
             new Label("Your media. Your sound.") {{ getStyleClass().add("brand-tagline"); }}
         );
         return header;
@@ -146,7 +150,7 @@ public class Main extends Application {
         audioPlaceholder = new VBox(20);
         audioPlaceholder.setAlignment(Pos.CENTER);
         audioPlaceholder.getStyleClass().add("audio-placeholder");
-        Label audioIcon = new Label("🎵");
+        Label audioIcon = new Label("AUDIO");
         audioIcon.getStyleClass().add("audio-icon");
         Label audioText = new Label("Now Playing Audio");
         audioText.setStyle("-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;");
@@ -200,26 +204,34 @@ public class Main extends Application {
         HBox controlsBox = new HBox(20);
         controlsBox.setAlignment(Pos.CENTER);
 
-        Button prevBtn = createControlButton("⏮");
-        prevBtn.setOnAction(e -> mediaController.playPrevious());
+        Button prevBtn = createControlButton(createPreviousIcon());
+        prevBtn.setOnAction(e -> {
+            mediaController.playPrevious();
+            updateNowPlayingUI();
+            updateAudioVideoView(playlistManager.getCurrentMediaPath());
+        });
 
-        Button playPauseBtn = createControlButton("▶");
+        Button playPauseBtn = createControlButton(createPlayIcon());
         playPauseBtn.getStyleClass().add("play-button");
         playPauseBtn.setOnAction(e -> {
             mediaController.togglePlayPause();
             updatePlayPauseIcon(playPauseBtn);
         });
 
-        Button stopBtn = createControlButton("■");
+        Button stopBtn = createControlButton(createStopIcon());
         stopBtn.setOnAction(e -> {
             mediaController.stop();
             updatePlayPauseIcon(playPauseBtn);
         });
 
-        Button nextBtn = createControlButton("⏭");
-        nextBtn.setOnAction(e -> mediaController.playNext());
+        Button nextBtn = createControlButton(createNextIcon());
+        nextBtn.setOnAction(e -> {
+            mediaController.playNext();
+            updateNowPlayingUI();
+            updateAudioVideoView(playlistManager.getCurrentMediaPath());
+        });
 
-        volumeIconLabel = new Label("🔊");
+        volumeIconLabel = new Label("Volume");
         volumeIconLabel.setStyle("-fx-font-size: 20px; -fx-cursor: hand;");
         volumeIconLabel.setOnMouseClicked(e -> {
             mediaController.toggleMute();
@@ -255,10 +267,88 @@ public class Main extends Application {
     }
 
     // Helper to create uniformly styled control buttons
-    private Button createControlButton(String text) {
-        Button btn = new Button(text);
+    private Button createControlButton(javafx.scene.Node graphic) {
+        Button btn = new Button();
+        btn.setGraphic(graphic);
         btn.getStyleClass().add("control-button");
         return btn;
+    }
+
+    private Polygon createPlayIcon() {
+        Polygon triangle = new Polygon(
+            0.0, 0.0,
+            0.0, 20.0,
+            18.0, 10.0
+        );
+        triangle.setFill(Color.WHITE);
+        return triangle;
+    }
+
+    private HBox createPauseIcon() {
+        HBox pause = new HBox(4);
+        Rectangle left = new Rectangle(6, 20);
+        Rectangle right = new Rectangle(6, 20);
+        left.setFill(Color.WHITE);
+        right.setFill(Color.WHITE);
+        pause.getChildren().addAll(left, right);
+        pause.setAlignment(Pos.CENTER);
+        return pause;
+    }
+
+    private Rectangle createStopIcon() {
+        Rectangle square = new Rectangle(18, 18);
+        square.setFill(Color.WHITE);
+        return square;
+    }
+
+    private HBox createPreviousIcon() {
+        HBox previous = new HBox(3);
+        Rectangle bar = new Rectangle(3, 20);
+        Polygon triangle1 = new Polygon(
+            17.0, 0.0,
+            17.0, 20.0,
+            3.0, 10.0
+        );
+        Polygon triangle2 = new Polygon(
+            30.0, 0.0,
+            30.0, 20.0,
+            16.0, 10.0
+        );
+
+        bar.setFill(Color.WHITE);
+        triangle1.setFill(Color.WHITE);
+        triangle2.setFill(Color.WHITE);
+
+        previous.getChildren().addAll(bar, triangle1, triangle2);
+        previous.setAlignment(Pos.CENTER);
+        return previous;
+    }
+
+    private HBox createNextIcon() {
+        HBox next = new HBox(3);
+        Polygon triangle1 = new Polygon(
+            0.0, 0.0,
+            0.0, 20.0,
+            14.0, 10.0
+        );
+        Polygon triangle2 = new Polygon(
+            13.0, 0.0,
+            13.0, 20.0,
+            27.0, 10.0
+        );
+        Rectangle bar = new Rectangle(3, 20);
+
+        triangle1.setFill(Color.WHITE);
+        triangle2.setFill(Color.WHITE);
+        bar.setFill(Color.WHITE);
+
+        next.getChildren().addAll(triangle1, triangle2, bar);
+        next.setAlignment(Pos.CENTER);
+        return next;
+    }
+
+    private void createVolumeIcon() {
+        // Volume control uses the existing text label and behavior
     }
 
     // Helper to build the keyboard shortcut labels
@@ -275,7 +365,10 @@ public class Main extends Application {
 
     private void setupKeyboardControls(Scene scene) {
         // Pass a reference to the remove method so the keyboard controller can trigger it
-        keyboardController = new KeyboardController(scene, mediaController, playlistManager, this::handleRemoveMedia);
+        keyboardController = new KeyboardController(scene, mediaController, playlistManager, this::handleRemoveMedia, () -> {
+            updateNowPlayingUI();
+            updateAudioVideoView(playlistManager.getCurrentMediaPath());
+        });
         
         // Listen for time changes to update the progress bar and time labels
         mediaController.currentTimeProperty().addListener((obs, oldVal, newVal) -> {
@@ -365,16 +458,16 @@ public class Main extends Application {
 
     private void updatePlayPauseIcon(Button btn) {
         if (mediaController.getStatus() == javafx.scene.media.MediaPlayer.Status.PLAYING) {
-            btn.setText("⏸");
+            btn.setGraphic(createPauseIcon());
         } else {
-            btn.setText("▶");
+            btn.setGraphic(createPlayIcon());
         }
     }
 
     private void updateVolumeUI() {
         double vol = mediaController.getVolume();
         volumeSlider.setValue(vol);
-        volumeIconLabel.setText((mediaController.isMuted() || vol == 0.0) ? "🔇" : "🔊");
+        volumeIconLabel.setText((mediaController.isMuted() || vol == 0.0) ? "Muted" : "Volume");
     }
 
     // Converts seconds into a clean MM:SS format

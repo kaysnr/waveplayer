@@ -9,12 +9,15 @@ public class KeyboardController {
     private final MediaPlayerController mediaController;
     private final PlaylistManager playlistManager;
     private final Runnable onRemoveSelected;
+    private final Runnable onMediaChanged;
 
     public KeyboardController(Scene scene, MediaPlayerController mediaController, 
-                              PlaylistManager playlistManager, Runnable onRemoveSelected) {
+                              PlaylistManager playlistManager, Runnable onRemoveSelected,
+                              Runnable onMediaChanged) {
         this.mediaController = mediaController;
         this.playlistManager = playlistManager;
         this.onRemoveSelected = onRemoveSelected;
+        this.onMediaChanged = onMediaChanged;
 
         // We use an EventFilter instead of a regular EventHandler. 
         // This ensures the shortcuts work globally, even if a button or list item currently has focus.
@@ -37,11 +40,17 @@ public class KeyboardController {
                 
             case N:
                 mediaController.playNext();
+                if (onMediaChanged != null) {
+                    onMediaChanged.run();
+                }
                 event.consume();
                 break;
                 
             case P:
                 mediaController.playPrevious();
+                if (onMediaChanged != null) {
+                    onMediaChanged.run();
+                }
                 event.consume();
                 break;
                 
